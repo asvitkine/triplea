@@ -1,7 +1,9 @@
 package games.strategy.triplea.ai.pro.data;
 
+import games.strategy.engine.data.Route;
 import games.strategy.engine.data.Territory;
 import games.strategy.engine.data.Unit;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -13,8 +15,8 @@ import lombok.Getter;
 public class ProTransport {
 
   private final Unit transport;
-  private final Map<Territory, Set<Territory>> transportMap;
-  private final Map<Territory, Set<Territory>> seaTransportMap;
+  private final Map<Territory, Set<Route>> transportMap;
+  private final Map<Territory, Set<Route>> seaTransportMap;
 
   ProTransport(final Unit transport) {
     this.transport = transport;
@@ -23,26 +25,16 @@ public class ProTransport {
   }
 
   void addTerritories(
-      final Set<Territory> attackTerritories, final Set<Territory> myUnitsToLoadTerritories) {
+      final Set<Territory> attackTerritories, final Collection<Route> myUnitsToLoadRoutes) {
     for (final Territory attackTerritory : attackTerritories) {
-      if (transportMap.containsKey(attackTerritory)) {
-        transportMap.get(attackTerritory).addAll(myUnitsToLoadTerritories);
-      } else {
-        final Set<Territory> territories = new HashSet<>(myUnitsToLoadTerritories);
-        transportMap.put(attackTerritory, territories);
-      }
+      transportMap.computeIfAbsent(attackTerritory, k -> new HashSet<>()).addAll(myUnitsToLoadRoutes);
     }
   }
 
   void addSeaTerritories(
-      final Set<Territory> attackTerritories, final Set<Territory> myUnitsToLoadTerritories) {
+      final Set<Territory> attackTerritories, final Collection<Route> myUnitsToLoadRoutes) {
     for (final Territory attackTerritory : attackTerritories) {
-      if (seaTransportMap.containsKey(attackTerritory)) {
-        seaTransportMap.get(attackTerritory).addAll(myUnitsToLoadTerritories);
-      } else {
-        final Set<Territory> territories = new HashSet<>(myUnitsToLoadTerritories);
-        seaTransportMap.put(attackTerritory, territories);
-      }
+      seaTransportMap.computeIfAbsent(attackTerritory, k -> new HashSet<>()).addAll(myUnitsToLoadRoutes);
     }
   }
 }

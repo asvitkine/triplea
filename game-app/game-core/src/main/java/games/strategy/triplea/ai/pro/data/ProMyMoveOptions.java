@@ -1,6 +1,7 @@
 package games.strategy.triplea.ai.pro.data;
 
 import games.strategy.engine.data.Territory;
+import games.strategy.engine.data.Route;
 import games.strategy.engine.data.Unit;
 import games.strategy.triplea.ai.pro.ProData;
 import java.util.ArrayList;
@@ -15,8 +16,8 @@ import lombok.Getter;
 public class ProMyMoveOptions {
 
   private final Map<Territory, ProTerritory> territoryMap;
-  private final Map<Unit, Set<Territory>> unitMoveMap;
-  private final Map<Unit, Set<Territory>> transportMoveMap;
+  private final Map<Unit, Set<Route>> unitMoveMap;
+  private final Map<Unit, Set<Route>> transportMoveMap;
   private final Map<Unit, Set<Territory>> bombardMap;
   private final List<ProTransport> transportList;
   private final Map<Unit, Set<Territory>> bomberMoveMap;

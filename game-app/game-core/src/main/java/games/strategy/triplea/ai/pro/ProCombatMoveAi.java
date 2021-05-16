@@ -1,9 +1,6 @@
 package games.strategy.triplea.ai.pro;
 
-import games.strategy.engine.data.GameData;
-import games.strategy.engine.data.GamePlayer;
-import games.strategy.engine.data.Territory;
-import games.strategy.engine.data.Unit;
+import games.strategy.engine.data.*;
 import games.strategy.triplea.Properties;
 import games.strategy.triplea.ai.pro.data.ProBattleResult;
 import games.strategy.triplea.ai.pro.data.ProOtherMoveOptions;
@@ -660,7 +657,7 @@ public class ProCombatMoveAi {
 
     ProLogger.info("Determine which territories to defend with one land unit");
 
-    final Map<Unit, Set<Territory>> unitMoveMap =
+    final Map<Unit, Set<Route>> unitMoveMap =
         territoryManager.getAttackOptions().getUnitMoveMap();
 
     // Get list of territories to attack
@@ -874,12 +871,12 @@ public class ProCombatMoveAi {
     final Map<Territory, ProTerritory> attackMap =
         territoryManager.getAttackOptions().getTerritoryMap();
     final ProOtherMoveOptions enemyAttackOptions = territoryManager.getEnemyAttackOptions();
-    final Map<Unit, Set<Territory>> unitAttackMap =
+    final Map<Unit, Set<Route>> unitAttackMap =
         territoryManager.getAttackOptions().getUnitMoveMap();
 
     // Assign units to territories by prioritization
     while (true) {
-      Map<Unit, Set<Territory>> sortedUnitAttackOptions =
+      Map<Unit, Set<Route>> sortedUnitAttackOptions =
           tryToAttackTerritories(prioritizedTerritories, alreadyMovedUnits);
 
       // Clear bombers
@@ -953,7 +950,8 @@ public class ProCombatMoveAi {
         }
         Territory minWinTerritory = null;
         double minWinPercentage = Double.MAX_VALUE;
-        for (final Territory t : sortedUnitAttackOptions.get(unit)) {
+        for (final Route route : sortedUnitAttackOptions.get(unit)) {
+          final Territory t = route.getEnd();
           final ProTerritory patd = attackMap.get(t);
 
           // Check if air unit should avoid this territory due to no guaranteed safe landing
@@ -1001,7 +999,8 @@ public class ProCombatMoveAi {
           continue;
         }
         Territory minWinTerritory = null;
-        for (final Territory t : sortedUnitAttackOptions.get(unit)) {
+        for (final Route route : sortedUnitAttackOptions.get(unit)) {
+          final Territory t = route.getEnd();
           final ProTerritory patd = attackMap.get(t);
           if (patd.isCanHold()) {
 
@@ -1041,7 +1040,8 @@ public class ProCombatMoveAi {
         if (!isSeaUnit) {
           continue; // skip non-sea units
         }
-        for (final Territory t : sortedUnitAttackOptions.get(unit)) {
+        for (final Route route : sortedUnitAttackOptions.get(unit)) {
+          final Territory t = route.getEnd();
           final ProTerritory patd = attackMap.get(t);
           if (attackMap.get(t).getBattleResult() == null) {
             patd.estimateBattleResult(calc, player);
@@ -1173,7 +1173,7 @@ public class ProCombatMoveAi {
             for (final ProTerritory patd2 : prioritizedTerritories) {
               if (!patd.equals(patd2)
                   && unitAttackMap.get(u) != null
-                  && unitAttackMap.get(u).contains(patd2.getTerritory())) {
+                  && unitAttackMap.get(u).stream().anyMatch(r -> r.getEnd().equals(patd2.getTerritory()))) {
                 canAttackOtherTerritory = true;
                 break;
               }
@@ -1218,15 +1218,15 @@ public class ProCombatMoveAi {
     }
   }
 
-  private Map<Unit, Set<Territory>> tryToAttackTerritories(
+  private Map<Unit, Set<Route>> tryToAttackTerritories(
       final List<ProTerritory> prioritizedTerritories, final List<Unit> alreadyMovedUnits) {
 
     final Map<Territory, ProTerritory> attackMap =
         territoryManager.getAttackOptions().getTerritoryMap();
     final ProOtherMoveOptions enemyAttackOptions = territoryManager.getEnemyAttackOptions();
-    final Map<Unit, Set<Territory>> unitAttackMap =
+    final Map<Unit, Set<Route>> unitAttackMap =
         territoryManager.getAttackOptions().getUnitMoveMap();
-    final Map<Unit, Set<Territory>> transportAttackMap =
+    final Map<Unit, Set<Route>> transportAttackMap =
         territoryManager.getAttackOptions().getTransportMoveMap();
     final Map<Unit, Set<Territory>> bombardMap =
         territoryManager.getAttackOptions().getBombardMap();
@@ -1243,14 +1243,17 @@ public class ProCombatMoveAi {
     }
 
     // Loop through all units and determine attack options
-    final Map<Unit, Set<Territory>> unitAttackOptions = new HashMap<>();
+    final Map<Unit, Set<Route>> unitAttackOptions = new HashMap<>();
     for (final Unit unit : unitAttackMap.keySet()) {
 
       // Find number of attack options
-      final Set<Territory> canAttackTerritories = new HashSet<>();
+      final Set<Route> canAttackTerritories = new HashSet<>();
       for (final ProTerritory attackTerritoryData : prioritizedTerritories) {
-        if (unitAttackMap.get(unit).contains(attackTerritoryData.getTerritory())) {
-          canAttackTerritories.add(attackTerritoryData.getTerritory());
+        for (final Route route : unitAttackMap.get(unit)) {
+          if (route.getEnd().equals(attackTerritoryData.getTerritory())) {
+            canAttackTerritories.add(route);
+            break;
+          }
         }
       }
 
@@ -1261,7 +1264,7 @@ public class ProCombatMoveAi {
     }
 
     // Sort units by number of attack options and cost
-    Map<Unit, Set<Territory>> sortedUnitAttackOptions =
+    Map<Unit, Set<Route>> sortedUnitAttackOptions =
         ProSortMoveOptionsUtils.sortUnitMoveOptions(proData, unitAttackOptions);
     final List<Unit> addedUnits = new ArrayList<>();
 
@@ -1271,8 +1274,8 @@ public class ProCombatMoveAi {
       if (!isDestroyerUnit) {
         continue; // skip non-destroyer units
       }
-      for (final Territory t : sortedUnitAttackOptions.get(unit)) {
-
+      for (final Route route : sortedUnitAttackOptions.get(unit)) {
+        final Territory t = route.getEnd();
         // Add destroyer if territory has subs and a destroyer has been already added
         final List<Unit> defendingUnits = attackMap.get(t).getMaxEnemyDefenders(player, data);
         if (defendingUnits.stream().anyMatch(Matches.unitHasSubBattleAbilities())
@@ -1294,10 +1297,16 @@ public class ProCombatMoveAi {
       if (isAirUnit || isExpensiveLandUnit || addedUnits.contains(unit)) {
         continue; // skip air and expensive units
       }
-      final TreeMap<Double, Territory> estimatesMap = new TreeMap<>();
-      for (final Territory t : sortedUnitAttackOptions.get(unit)) {
+      final TreeMap<Double, Route> estimatesMap = new TreeMap<>();
+      for (final Route route : sortedUnitAttackOptions.get(unit)) {
+        final Territory t = route.getEnd();
         if (t.isWater() && !attackMap.get(t).isCanHold()) {
           continue; // ignore sea territories that can't be held
+        }
+        final ResourceCollection fuelCost =
+                Route.getMovementFuelCostCharge(List.of(unit), route, player, data);
+        if (!proData.getPredictedResources().has(fuelCost)) {
+          continue;
         }
         final List<Unit> defendingUnits = attackMap.get(t).getMaxEnemyDefenders(player, data);
         double estimate =
@@ -1307,13 +1316,17 @@ public class ProCombatMoveAi {
         if (hasAa) {
           estimate -= 10;
         }
-        estimatesMap.put(estimate, t);
+        estimatesMap.put(estimate, route);
       }
       if (!estimatesMap.isEmpty() && estimatesMap.firstKey() < 40) {
-        final Territory minWinTerritory = estimatesMap.entrySet().iterator().next().getValue();
+        final Route route = estimatesMap.entrySet().iterator().next().getValue();
+        final Territory minWinTerritory = route.getEnd();
         final List<Unit> unitsToAdd =
             ProTransportUtils.getUnitsToAdd(proData, unit, alreadyMovedUnits, attackMap);
         attackMap.get(minWinTerritory).addUnits(unitsToAdd);
+        final ResourceCollection fuelCost =
+                Route.getMovementFuelCostCharge(List.of(unit), route, player, data);
+        proData.subtractResources(fuelCost);
         addedUnits.addAll(unitsToAdd);
       }
     }
@@ -1331,17 +1344,27 @@ public class ProCombatMoveAi {
         continue; // skip air units
       }
       Territory minWinTerritory = null;
+      ResourceCollection minWinTerritoryFuelCost = null;
       double minWinPercentage = proData.getWinPercentage();
-      for (final Territory t : sortedUnitAttackOptions.get(unit)) {
+      for (final Route route : sortedUnitAttackOptions.get(unit)) {
+        final Territory t = route.getEnd();
         final ProTerritory patd = attackMap.get(t);
         if (!attackMap.get(t).isCurrentlyWins() && attackMap.get(t).isCanHold()) {
           if (attackMap.get(t).getBattleResult() == null) {
             patd.estimateBattleResult(calc, player);
           }
+          // Skip this route if we can't get to it.
+          final ResourceCollection fuelCost =
+                  Route.getMovementFuelCostCharge(List.of(unit), route, player, data);
+          if (!proData.getPredictedResources().has(fuelCost)) {
+            continue;
+          }
+
           final ProBattleResult result = attackMap.get(t).getBattleResult();
           if (result.getWinPercentage() < minWinPercentage
               || (!result.isHasLandUnitRemaining() && minWinTerritory == null)) {
             minWinPercentage = result.getWinPercentage();
+            minWinTerritoryFuelCost = fuelCost;
             minWinTerritory = t;
           }
         }
@@ -1368,8 +1391,10 @@ public class ProCombatMoveAi {
         continue; // skip non-air units
       }
       Territory minWinTerritory = null;
+      ResourceCollection minWinTerritoryFuelCost = null;
       double minWinPercentage = proData.getWinPercentage();
-      for (final Territory t : sortedUnitAttackOptions.get(unit)) {
+      for (final Route route : sortedUnitAttackOptions.get(unit)) {
+        final Territory t = route.getEnd();
         final ProTerritory patd = attackMap.get(t);
         if (!patd.isCurrentlyWins() && !patd.isCanHold()) {
 
@@ -1393,6 +1418,13 @@ public class ProCombatMoveAi {
             continue;
           }
 
+          // Skip this route if we can't get to it.
+          final ResourceCollection fuelCost =
+                  Route.getMovementFuelCostCharge(List.of(unit), route, player, data);
+          if (!proData.getPredictedResources().has(fuelCost)) {
+            continue;
+          }
+
           // Check battle results
           if (patd.getBattleResult() == null) {
             patd.estimateBattleResult(calc, player);
@@ -1413,6 +1445,7 @@ public class ProCombatMoveAi {
                 && (!hasAa || result.getWinPercentage() < minWinPercentage)) {
               minWinPercentage = result.getWinPercentage();
               minWinTerritory = t;
+              minWinTerritoryFuelCost = fuelCost;
               if (patd.isStrafing()) {
                 break;
               }
@@ -1423,6 +1456,7 @@ public class ProCombatMoveAi {
       if (minWinTerritory != null) {
         attackMap.get(minWinTerritory).setBattleResult(null);
         attackMap.get(minWinTerritory).addUnit(unit);
+        proData.subtractResources(minWinTerritoryFuelCost);
         addedUnits.add(unit);
       }
     }
@@ -1440,8 +1474,10 @@ public class ProCombatMoveAi {
       }
       final boolean isAirUnit = UnitAttachment.get(unit.getType()).getIsAir();
       Territory minWinTerritory = null;
+      ResourceCollection minWinTerritoryFuelCost = null;
       double minWinPercentage = proData.getWinPercentage();
-      for (final Territory t : sortedUnitAttackOptions.get(unit)) {
+      for (final Route route : sortedUnitAttackOptions.get(unit)) {
+        final Territory t = route.getEnd();
         final ProTerritory patd = attackMap.get(t);
         if (!patd.isCurrentlyWins()) {
 
@@ -1470,6 +1506,11 @@ public class ProCombatMoveAi {
               && (territoryValueIsLessThanUnitValue || (!t.isWater() && !patd.isCanHold()))) {
             continue;
           }
+          final ResourceCollection fuelCost =
+                  Route.getMovementFuelCostCharge(List.of(unit), route, player, data);
+          if (!proData.getPredictedResources().has(fuelCost)) {
+            continue;
+          }
           if (patd.getBattleResult() == null) {
             patd.estimateBattleResult(calc, player);
           }
@@ -1490,6 +1531,7 @@ public class ProCombatMoveAi {
                     && (!hasAa || result.getWinPercentage() < minWinPercentage))) {
               minWinPercentage = result.getWinPercentage();
               minWinTerritory = t;
+              minWinTerritoryFuelCost = fuelCost;
             }
           }
         }
@@ -1499,6 +1541,7 @@ public class ProCombatMoveAi {
         final List<Unit> unitsToAdd =
             ProTransportUtils.getUnitsToAdd(proData, unit, alreadyMovedUnits, attackMap);
         attackMap.get(minWinTerritory).addUnits(unitsToAdd);
+        proData.subtractResources(minWinTerritoryFuelCost);
         addedUnits.addAll(unitsToAdd);
       }
     }
@@ -1603,7 +1646,7 @@ public class ProCombatMoveAi {
 
                 // Find units to load
                 final Set<Territory> territoriesCanLoadFrom =
-                    proTransportData.getTransportMap().get(t);
+                    proTransportData.getTransportMap().get(t).stream().map(route -> route.getEnd()).collect(Collectors.toSet());
                 final List<Unit> amphibUnitsToAdd =
                     ProTransportUtils.getUnitsToTransportFromTerritories(
                         player, transport, territoriesCanLoadFrom, alreadyAttackedWithUnits);

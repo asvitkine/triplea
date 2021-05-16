@@ -101,6 +101,10 @@ public class ResourceCollection extends GameDataComponent {
     return resources.greaterThanOrEqualTo(map);
   }
 
+  public boolean has(final ResourceCollection other) {
+    return resources.greaterThanOrEqualTo(other.resources);
+  }
+
   /** Returns new ResourceCollection containing the difference between both collections. */
   public ResourceCollection difference(final ResourceCollection otherCollection) {
     final ResourceCollection returnCollection = new ResourceCollection(getData(), resources);

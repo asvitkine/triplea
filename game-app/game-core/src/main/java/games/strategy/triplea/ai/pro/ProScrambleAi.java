@@ -2,6 +2,7 @@ package games.strategy.triplea.ai.pro;
 
 import games.strategy.engine.data.GameData;
 import games.strategy.engine.data.GamePlayer;
+import games.strategy.engine.data.Route;
 import games.strategy.engine.data.Territory;
 import games.strategy.engine.data.Unit;
 import games.strategy.triplea.ai.pro.data.ProBattleResult;
@@ -14,14 +15,9 @@ import games.strategy.triplea.delegate.battle.BattleDelegate;
 import games.strategy.triplea.delegate.battle.IBattle;
 import games.strategy.triplea.delegate.battle.IBattle.BattleType;
 import games.strategy.triplea.delegate.battle.ScrambleLogic;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
+
 import org.triplea.util.Tuple;
 
 /** Pro scramble AI. */
@@ -96,7 +92,7 @@ class ProScrambleAi {
     }
 
     // Loop through all units and determine attack options
-    final Map<Unit, Set<Territory>> unitDefendOptions = new HashMap<>();
+    final Map<Unit, Set<Route>> unitDefendOptions = new HashMap<>();
     for (final Territory t : possibleMaxScramblerMap.keySet()) {
       final Set<Territory> possibleTerritories =
           data.getMap()
@@ -114,12 +110,14 @@ class ProScrambleAi {
         }
       }
       for (final Unit u : possibleMaxScramblerMap.get(t)) {
-        unitDefendOptions.put(u, battleTerritories);
+        final Route route = data.getMap().getRouteForUnits(t, scrambleTo,
+                ProMatches.territoryCanMoveSeaUnits(player, data.getProperties(), data.getRelationshipTracker(), true), List.of(u), u.getOwner());
+        unitDefendOptions.computeIfAbsent(u, k -> new HashSet<>()).add(route);
       }
     }
 
     // Sort units by number of defend options and cost
-    final Map<Unit, Set<Territory>> sortedUnitDefendOptions =
+    final Map<Unit, Set<Route>> sortedUnitDefendOptions =
         ProSortMoveOptionsUtils.sortUnitMoveOptions(proData, unitDefendOptions);
 
     // Add one scramble unit at a time and check if final result is better than min result

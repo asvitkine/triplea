@@ -1,11 +1,6 @@
 package games.strategy.triplea.ai.pro;
 
-import games.strategy.engine.data.GameData;
-import games.strategy.engine.data.GamePlayer;
-import games.strategy.engine.data.GameState;
-import games.strategy.engine.data.Territory;
-import games.strategy.engine.data.Unit;
-import games.strategy.engine.data.UnitType;
+import games.strategy.engine.data.*;
 import games.strategy.triplea.Properties;
 import games.strategy.triplea.ai.pro.data.ProPurchaseOption;
 import games.strategy.triplea.ai.pro.data.ProPurchaseOptionMap;
@@ -34,6 +29,7 @@ public final class ProData {
   private IntegerMap<UnitType> unitValueMap = new IntegerMap<>();
   private @Nullable ProPurchaseOptionMap purchaseOptions = null;
   private double minCostPerHitPoint = Double.MAX_VALUE;
+  private ResourceCollection predictedResources = null;
 
   private AbstractProAi proAi;
   private GameData data;
@@ -79,6 +75,8 @@ public final class ProData {
     unitValueMap = TuvUtils.getCostsForTuv(player, data);
     purchaseOptions = new ProPurchaseOptionMap(player, data);
     minCostPerHitPoint = getMinCostPerHitPoint(purchaseOptions.getLandOptions());
+    predictedResources = new ResourceCollection(data);
+    predictedResources.add(player.getResources());
   }
 
   private static Map<Unit, Territory> newUnitTerritoryMap(final GameState data) {
@@ -99,5 +97,10 @@ public final class ProData {
       }
     }
     return minCostPerHitPoint;
+  }
+
+  public void subtractResources(final ResourceCollection resources) {
+    // Note: No need to validate since difference() will throw when subtracting more than available.
+    predictedResources = predictedResources.difference(resources);
   }
 }

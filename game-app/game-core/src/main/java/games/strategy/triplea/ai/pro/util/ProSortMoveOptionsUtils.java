@@ -3,6 +3,7 @@ package games.strategy.triplea.ai.pro.util;
 import games.strategy.engine.data.GameData;
 import games.strategy.engine.data.GamePlayer;
 import games.strategy.engine.data.GameState;
+import games.strategy.engine.data.Route;
 import games.strategy.engine.data.Territory;
 import games.strategy.engine.data.Unit;
 import games.strategy.engine.data.UnitType;
@@ -32,10 +33,10 @@ public final class ProSortMoveOptionsUtils {
    * Returns a copy of {@code unitAttackOptions} sorted by number of move options, then by cost of
    * unit, then by unit type name.
    */
-  public static Map<Unit, Set<Territory>> sortUnitMoveOptions(
-      final ProData proData, final Map<Unit, Set<Territory>> unitAttackOptions) {
+  public static Map<Unit, Set<Route>> sortUnitMoveOptions(
+      final ProData proData, final Map<Unit, Set<Route>> unitAttackOptions) {
 
-    final List<Map.Entry<Unit, Set<Territory>>> list =
+    final List<Map.Entry<Unit, Set<Route>>> list =
         new ArrayList<>(unitAttackOptions.entrySet());
     list.sort(
         (o1, o2) -> {
@@ -50,8 +51,8 @@ public final class ProSortMoveOptionsUtils {
           }
           return o1.getKey().getType().getName().compareTo(o2.getKey().getType().getName());
         });
-    final Map<Unit, Set<Territory>> sortedUnitAttackOptions = new LinkedHashMap<>();
-    for (final Map.Entry<Unit, Set<Territory>> entry : list) {
+    final Map<Unit, Set<Route>> sortedUnitAttackOptions = new LinkedHashMap<>();
+    for (final Map.Entry<Unit, Set<Route>> entry : list) {
       sortedUnitAttackOptions.put(entry.getKey(), entry.getValue());
     }
     return sortedUnitAttackOptions;
@@ -62,19 +63,19 @@ public final class ProSortMoveOptionsUtils {
    * unit, then by unit type name. The number of move options are calculated based on pending
    * battles which require additional units for the attacker to be successful.
    */
-  public static Map<Unit, Set<Territory>> sortUnitNeededOptions(
+  public static Map<Unit, Set<Route>> sortUnitNeededOptions(
       final ProData proData,
       final GamePlayer player,
-      final Map<Unit, Set<Territory>> unitAttackOptions,
+      final Map<Unit, Set<Route>> unitAttackOptions,
       final Map<Territory, ProTerritory> attackMap,
       final ProOddsCalculator calc) {
-    final List<Map.Entry<Unit, Set<Territory>>> list =
+    final List<Map.Entry<Unit, Set<Route>>> list =
         new ArrayList<>(unitAttackOptions.entrySet());
     list.sort(
         (o1, o2) -> {
-          final Collection<Territory> territories1 =
+          final Collection<Route> territories1 =
               removeWinningTerritories(o1.getValue(), player, attackMap, calc);
-          final Collection<Territory> territories2 =
+          final Collection<Route> territories2 =
               removeWinningTerritories(o2.getValue(), player, attackMap, calc);
 
           // Sort by number of territories that still need units
@@ -90,8 +91,8 @@ public final class ProSortMoveOptionsUtils {
           }
           return unitType1.getName().compareTo(unitType2.getName());
         });
-    final Map<Unit, Set<Territory>> sortedUnitAttackOptions = new LinkedHashMap<>();
-    for (final Map.Entry<Unit, Set<Territory>> entry : list) {
+    final Map<Unit, Set<Route>> sortedUnitAttackOptions = new LinkedHashMap<>();
+    for (final Map.Entry<Unit, Set<Route>> entry : list) {
       sortedUnitAttackOptions.put(entry.getKey(), entry.getValue());
     }
     return sortedUnitAttackOptions;
@@ -103,22 +104,22 @@ public final class ProSortMoveOptionsUtils {
    * move options are calculated based on pending battles which require additional units for the
    * attacker to be successful.
    */
-  public static Map<Unit, Set<Territory>> sortUnitNeededOptionsThenAttack(
+  public static Map<Unit, Set<Route>> sortUnitNeededOptionsThenAttack(
       final ProData proData,
       final GamePlayer player,
-      final Map<Unit, Set<Territory>> unitAttackOptions,
+      final Map<Unit, Set<Route>> unitAttackOptions,
       final Map<Territory, ProTerritory> attackMap,
       final ProOddsCalculator calc) {
     final GameState data = proData.getData();
     final Map<Unit, Territory> unitTerritoryMap = proData.getUnitTerritoryMap();
 
-    final List<Map.Entry<Unit, Set<Territory>>> list =
+    final List<Map.Entry<Unit, Set<Route>>> list =
         new ArrayList<>(unitAttackOptions.entrySet());
     list.sort(
         (o1, o2) -> {
-          final Collection<Territory> territories1 =
+          final Collection<Route> territories1 =
               removeWinningTerritories(o1.getValue(), player, attackMap, calc);
-          final Collection<Territory> territories2 =
+          final Collection<Route> territories2 =
               removeWinningTerritories(o2.getValue(), player, attackMap, calc);
 
           // Sort by number of territories that still need units
@@ -152,12 +153,12 @@ public final class ProSortMoveOptionsUtils {
             final Territory territory1 = unitTerritoryMap.get(unit1);
             final Territory territory2 = unitTerritoryMap.get(unit2);
             int distance1 = 0;
-            for (final Territory t : territories1) {
-              distance1 += data.getMap().getDistanceIgnoreEndForCondition(territory1, t, predicate);
+            for (final Route route : territories1) {
+              distance1 += data.getMap().getDistanceIgnoreEndForCondition(territory1, route.getEnd(), predicate);
             }
             int distance2 = 0;
-            for (final Territory t : territories2) {
-              distance2 += data.getMap().getDistanceIgnoreEndForCondition(territory2, t, predicate);
+            for (final Route route : territories2) {
+              distance2 += data.getMap().getDistanceIgnoreEndForCondition(territory2, route.getEnd(), predicate);
             }
             if (distance1 != distance2) {
               return distance1 - distance2;
@@ -166,21 +167,22 @@ public final class ProSortMoveOptionsUtils {
 
           return unitType1.getName().compareTo(unitType2.getName());
         });
-    final Map<Unit, Set<Territory>> sortedUnitAttackOptions = new LinkedHashMap<>();
-    for (final Map.Entry<Unit, Set<Territory>> entry : list) {
+    final Map<Unit, Set<Route>> sortedUnitAttackOptions = new LinkedHashMap<>();
+    for (final Map.Entry<Unit, Set<Route>> entry : list) {
       sortedUnitAttackOptions.put(entry.getKey(), entry.getValue());
     }
     return sortedUnitAttackOptions;
   }
 
-  private static Collection<Territory> removeWinningTerritories(
-      final Collection<Territory> territories,
+  private static Collection<Route> removeWinningTerritories(
+      final Collection<Route> routes,
       final GamePlayer player,
       final Map<Territory, ProTerritory> attackMap,
       final ProOddsCalculator calc) {
-    return territories.stream()
+    return routes.stream()
         .filter(
-            t -> {
+            route -> {
+                final Territory t = route.getEnd();
               final ProTerritory patd = attackMap.get(t);
               if (patd.getBattleResult() == null) {
                 patd.estimateBattleResult(calc, player);
@@ -194,12 +196,13 @@ public final class ProSortMoveOptionsUtils {
       final ProData proData,
       final GamePlayer player,
       final Map<Territory, ProTerritory> attackMap,
-      final Collection<Territory> territories,
+      final Collection<Route> routes,
       final Unit unit) {
     final GameData data = proData.getData();
 
     int minPower = Integer.MAX_VALUE;
-    for (final Territory t : territories) {
+    for (final Route route : routes) {
+        final Territory t = route.getEnd();
       final List<Unit> defendingUnits =
           t.getUnitCollection()
               .getMatches(Matches.enemyUnit(player, data.getRelationshipTracker()));

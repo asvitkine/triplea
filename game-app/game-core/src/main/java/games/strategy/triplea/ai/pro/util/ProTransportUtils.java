@@ -5,6 +5,7 @@ import static java.util.function.Predicate.not;
 import com.google.common.collect.ImmutableList;
 import games.strategy.engine.data.GamePlayer;
 import games.strategy.engine.data.GameState;
+import games.strategy.engine.data.Route;
 import games.strategy.engine.data.Territory;
 import games.strategy.engine.data.Unit;
 import games.strategy.triplea.ai.AiUtils;
@@ -54,7 +55,7 @@ public final class ProTransportUtils {
       final Set<Territory> territoriesToLoadFrom,
       final Collection<Unit> unitsToIgnore,
       final Map<Territory, ProTerritory> moveMap,
-      final Map<Unit, Set<Territory>> unitMoveMap,
+      final Map<Unit, Set<Route>> unitMoveMap,
       final double value) {
 
     final List<Unit> unitsToIgnoreOrHaveBetterLandMove = new ArrayList<>(unitsToIgnore);
@@ -75,7 +76,8 @@ public final class ProTransportUtils {
       // Check to see which have higher land move value
       for (final Unit u : units) {
         if (unitMoveMap.get(u) != null) {
-          for (final Territory t : unitMoveMap.get(u)) {
+          for (final Route route : unitMoveMap.get(u)) {
+            final Territory t = route.getEnd();
             if (moveMap.get(t) != null && moveMap.get(t).getValue() > value) {
               unitsToIgnoreOrHaveBetterLandMove.add(u);
               break;
