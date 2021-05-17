@@ -1187,6 +1187,8 @@ public class ProTerritoryManager {
             movesLeft++; // assumes bonus of +1 for now
           }
         }
+        ProLogger.debug("Transport movesLeft = " + movesLeft);
+        ProLogger.debug("" + proData.getPredictedResources());
 
         // Find units to load and territories to unload
         final ProTransport proTransportData = new ProTransport(myTransportUnit);

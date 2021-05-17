@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.triplea.util.Tuple;
@@ -160,6 +161,39 @@ public final class ProMoveUtils {
     return moves;
   }
 
+  public static Route getRouteForUnit(
+      final ProData proData,
+      final GamePlayer player,
+      final Unit unit,
+      final Territory toTerritory,
+      final boolean isCombatMove) {
+    final Territory startTerritory = proData.getUnitTerritory(unit);
+    if (startTerritory == null || startTerritory.equals(toTerritory)) {
+      return null;
+    }
+    final GameData data = proData.getData();
+    final GameMap map = data.getMap();
+    Predicate<Territory> predicate;
+    Route route = null;
+    if (Matches.unitIsSea().test(unit)) {
+      predicate =
+          ProMatches.territoryCanMoveSeaUnitsThrough(
+              player, data.getProperties(), data.getRelationshipTracker(), isCombatMove);
+
+    } else if (Matches.unitIsLand().test(unit)) {
+      predicate =
+          ProMatches.territoryCanMoveLandUnitsThrough(
+              player, data, unit, startTerritory, isCombatMove, List.of());
+    } else if (Matches.unitIsAir().test(unit)) {
+      predicate =
+          ProMatches.territoryCanMoveAirUnitsAndNoAa(
+              player, data.getProperties(), data.getRelationshipTracker(), isCombatMove);
+    } else {
+      return null;
+    }
+    return map.getRouteForUnit(startTerritory, toTerritory, predicate, unit, player);
+  }
+
   /**
    * Calculates amphibious movement routes.
    *
@@ -206,9 +240,10 @@ public final class ProMoveUtils {
               .negate()
               .test(transportTerritory)) {
             final var unitsToRemove = new ArrayList<Unit>();
+            final var neighborTerritories = map.getNeighbors(transportTerritory);
             for (final Unit amphibUnit : remainingUnitsToLoad) {
               final Territory unitTerritory = proData.getUnitTerritory(amphibUnit);
-              if (map.getDistance(transportTerritory, unitTerritory) == 1) {
+              if (neighborTerritories.contains(unitTerritory)) {
                 final Route route = new Route(unitTerritory, transportTerritory);
                 moves.addTransportLoad(amphibUnit, route, transport);
                 unitsToRemove.add(amphibUnit);
@@ -238,8 +273,8 @@ public final class ProMoveUtils {
                         player, data.getProperties(), data.getRelationshipTracker(), isCombatMove));
             Territory territoryToMoveTo = null;
             int minUnitDistance = Integer.MAX_VALUE;
-            int maxDistanceFromEnd =
-                Integer.MIN_VALUE; // Used to move to farthest away loading territory first
+            // Used to move to farthest away loading territory first
+            int maxDistanceFromEnd = Integer.MIN_VALUE;
             for (final Territory neighbor : neighbors) {
               final Route route = new Route(transportTerritory, neighbor);
               if (new MoveValidator(data).validateCanal(route, List.of(transport), player)
