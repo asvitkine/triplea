@@ -1,6 +1,12 @@
 package games.strategy.triplea.ai.pro;
 
-import games.strategy.engine.data.*;
+import games.strategy.engine.data.GameData;
+import games.strategy.engine.data.GamePlayer;
+import games.strategy.engine.data.GameState;
+import games.strategy.engine.data.ResourceCollection;
+import games.strategy.engine.data.Territory;
+import games.strategy.engine.data.Unit;
+import games.strategy.engine.data.UnitType;
 import games.strategy.triplea.Properties;
 import games.strategy.triplea.ai.pro.data.ProPurchaseOption;
 import games.strategy.triplea.ai.pro.data.ProPurchaseOptionMap;
