@@ -175,17 +175,14 @@ public final class ProMoveUtils {
     Route route = null;
     if (Matches.unitIsSea().test(unit)) {
       predicate =
-          ProMatches.territoryCanMoveSeaUnitsThrough(
-              player, data.getProperties(), data.getRelationshipTracker(), isCombatMove);
+          ProMatches.territoryCanMoveSeaUnitsThrough(data, player, isCombatMove);
 
     } else if (Matches.unitIsLand().test(unit)) {
       predicate =
-          ProMatches.territoryCanMoveLandUnitsThrough(
-              player, data, unit, startTerritory, isCombatMove, List.of());
+          ProMatches.territoryCanMoveLandUnitsThrough(data, player, unit, startTerritory, isCombatMove, List.of());
     } else if (Matches.unitIsAir().test(unit)) {
       predicate =
-          ProMatches.territoryCanMoveAirUnitsAndNoAa(
-              player, data.getProperties(), data.getRelationshipTracker(), isCombatMove);
+          ProMatches.territoryCanMoveAirUnitsAndNoAa(data, player, isCombatMove);
     } else {
       return null;
     }

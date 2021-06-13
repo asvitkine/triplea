@@ -1112,25 +1112,10 @@ public class ProTerritoryManager {
 
       // Check each transport unit individually since they can have different ranges
       for (final Unit myTransport : myTransportUnits) {
-
-        // Get remaining moves
-        int movesLeft = myTransportUnit.getMovementLeft().intValue();
-        if (isCheckingEnemyAttacks) {
-          movesLeft = UnitAttachment.get(myTransportUnit.getType()).getMovement(player);
-          if (Matches.unitCanBeGivenBonusMovementByFacilitiesInItsTerritory(
-                  myUnitTerritory, player, data.getRelationshipTracker(), data.getMap())
-              .test(myTransportUnit)) {
-            movesLeft++; // assumes bonus of +1 for now
-          }
-        }
-        ProLogger.debug("Transport movesLeft = " + movesLeft);
-        ProLogger.debug("" + proData.getPredictedResources());
-
         final Predicate<Territory> canMoveSeaUnitsThrough =
             ProMatches.territoryCanMoveSeaUnitsThrough(data, player, isCombatMove);
         final Predicate<Territory> canMoveSeaUnits =
             ProMatches.territoryCanMoveSeaUnits(data, player, isCombatMove);
-
 
         // Find units to load and territories to unload
         final ProTransport proTransportData = new ProTransport(myTransport);
