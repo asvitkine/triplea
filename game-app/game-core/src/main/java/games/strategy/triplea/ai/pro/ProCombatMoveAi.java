@@ -193,10 +193,7 @@ public class ProCombatMoveAi {
       final boolean isAdjacentToMyCapital =
           !data.getMap().getNeighbors(t, Matches.territoryIs(proData.getMyCapital())).isEmpty();
       final int isNotNeutralAdjacentToMyCapital =
-          (isAdjacentToMyCapital
-                  && ProMatches.territoryIsEnemyNotNeutralLand(
-                          player, data.getProperties(), data.getRelationshipTracker())
-                      .test(t))
+          (isAdjacentToMyCapital && ProMatches.territoryIsEnemyNotNeutralLand(data, player).test(t))
               ? 1
               : 0;
       final int isFactory = ProMatches.territoryHasInfraFactoryAndIsLand().test(t) ? 1 : 0;
@@ -237,11 +234,7 @@ public class ProCombatMoveAi {
         double nearbyEnemyValue = 0;
         final List<Territory> cantReachEnemyTerritories = new ArrayList<>();
         final Set<Territory> nearbyTerritories =
-            data.getMap()
-                .getNeighbors(
-                    t,
-                    ProMatches.territoryCanMoveLandUnits(
-                        player, data.getProperties(), data.getRelationshipTracker(), true));
+            data.getMap().getNeighbors(t, ProMatches.territoryCanMoveLandUnits(data, player, true));
         final List<Territory> nearbyEnemyTerritories =
             CollectionUtils.getMatches(
                 nearbyTerritories, Matches.isTerritoryEnemy(player, data.getRelationshipTracker()));
@@ -255,8 +248,7 @@ public class ProCombatMoveAi {
                     .getDistanceIgnoreEndForCondition(
                         nearbyAlliedTerritory,
                         nearbyEnemyTerritory,
-                        ProMatches.territoryIsEnemyNotNeutralOrAllied(
-                            player, data.getProperties(), data.getRelationshipTracker()));
+                        ProMatches.territoryIsEnemyNotNeutralOrAllied(data, player));
             if (distance < 0 || distance > 2) {
               allAlliedNeighborsHaveRoute = false;
               break;
@@ -631,9 +623,7 @@ public class ProCombatMoveAi {
           final Set<Territory> enemyNeighbors =
               data.getMap()
                   .getNeighbors(
-                      attackFromTerritory,
-                      ProMatches.territoryIsEnemyNotNeutralLand(
-                          player, data.getProperties(), data.getRelationshipTracker()));
+                      attackFromTerritory, ProMatches.territoryIsEnemyNotNeutralLand(data, player));
           if (!prioritizedTerritoryList.containsAll(enemyNeighbors)) {
             attackersHaveEnemyNeighbors = true;
             attackFromTerritoryWithEnemyNeighbors = attackFromTerritory;
@@ -1086,9 +1076,7 @@ public class ProCombatMoveAi {
         boolean canHold = true;
         double enemyCounterTuvSwing = 0;
         if (enemyAttackOptions.getMax(t) != null
-            && !ProMatches.territoryIsWaterAndAdjacentToOwnedFactory(
-                    player, data.getMap(), data.getProperties(), data.getRelationshipTracker())
-                .test(t)) {
+            && !ProMatches.territoryIsWaterAndAdjacentToOwnedFactory(data, player).test(t)) {
           List<Unit> remainingUnitsToDefendWith =
               CollectionUtils.getMatches(
                   result.getAverageAttackersRemaining(), Matches.unitIsAir().negate());
@@ -1411,8 +1399,7 @@ public class ProCombatMoveAi {
                   .getDistanceIgnoreEndForCondition(
                       proData.getUnitTerritory(unit),
                       t,
-                      ProMatches.territoryCanMoveAirUnitsAndNoAa(
-                          player, data.getProperties(), data.getRelationshipTracker(), true));
+                      ProMatches.territoryCanMoveAirUnitsAndNoAa(data, player, true));
           final boolean usesMoreThanHalfOfRange = distance > range / 2;
           if (!isEnemyCapital && !isAdjacentToAlliedCapital && usesMoreThanHalfOfRange) {
             continue;
@@ -1495,8 +1482,7 @@ public class ProCombatMoveAi {
                   .getDistanceIgnoreEndForCondition(
                       proData.getUnitTerritory(unit),
                       t,
-                      ProMatches.territoryCanMoveAirUnitsAndNoAa(
-                          player, data.getProperties(), data.getRelationshipTracker(), true));
+                      ProMatches.territoryCanMoveAirUnitsAndNoAa(data, player, true));
           final boolean usesMoreThanHalfOfRange = distance > range / 2;
           final boolean territoryValueIsLessThanUnitValue =
               patd.getValue() < proData.getUnitValue(unit.getType());
@@ -1659,13 +1645,7 @@ public class ProCombatMoveAi {
                 minUnloadFromTerritory = null;
                 final Set<Territory> territoriesToMoveTransport =
                     data.getMap()
-                        .getNeighbors(
-                            t,
-                            ProMatches.territoryCanMoveSeaUnits(
-                                player,
-                                data.getProperties(),
-                                data.getRelationshipTracker(),
-                                false));
+                        .getNeighbors(t, ProMatches.territoryCanMoveSeaUnits(data, player, false));
                 final Set<Territory> loadFromTerritories = new HashSet<>();
                 for (final Unit u : amphibUnitsToAdd) {
                   loadFromTerritories.add(proData.getUnitTerritory(u));
@@ -1938,10 +1918,7 @@ public class ProCombatMoveAi {
         // Move into random adjacent safe sea territory
         final Set<Territory> possibleMoveTerritories =
             data.getMap()
-                .getNeighbors(
-                    t,
-                    ProMatches.territoryCanMoveSeaUnitsThrough(
-                        player, data.getProperties(), data.getRelationshipTracker(), true));
+                .getNeighbors(t, ProMatches.territoryCanMoveSeaUnitsThrough(data, player, true));
         if (!possibleMoveTerritories.isEmpty()) {
           final Territory moveToTerritory = possibleMoveTerritories.iterator().next();
           final List<Unit> mySeaUnits =
@@ -2078,8 +2055,7 @@ public class ProCombatMoveAi {
             .getDistanceIgnoreEndForCondition(
                 proData.getUnitTerritory(unit),
                 t,
-                ProMatches.territoryCanMoveAirUnitsAndNoAa(
-                    player, data.getProperties(), data.getRelationshipTracker(), true));
+                ProMatches.territoryCanMoveAirUnitsAndNoAa(data, player, true));
     final boolean usesMoreThanHalfOfRange = distance > range / 2;
     return isAdjacentToAlliedFactory || !usesMoreThanHalfOfRange;
   }
